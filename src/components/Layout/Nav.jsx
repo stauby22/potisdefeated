@@ -8,7 +8,8 @@ const links = [
   { to: '/draft',     label: 'Draft'      },
   { to: '/h2h',       label: 'H2H'        },
   { to: '/records',   label: 'Records'    },
-  { to: '/trades',    label: 'Trades'     },
+  { to: '/trades',        label: 'Trades'      },
+  { to: '/championships', label: 'Champions'   },
 ]
 
 export default function Nav() {

@@ -10,6 +10,7 @@ import WeeklyMatchups from './pages/WeeklyMatchups'
 import DraftHistory from './pages/DraftHistory'
 import Records from './pages/Records'
 import TradeHistory from './pages/TradeHistory'
+import Championships from './pages/Championships'
 
 export default function App() {
   return (
@@ -27,6 +28,7 @@ export default function App() {
             <Route path="draft" element={<DraftHistory />} />
             <Route path="records" element={<Records />} />
             <Route path="trades" element={<TradeHistory />} />
+            <Route path="championships" element={<Championships />} />
           </Route>
         </Routes>
       </BrowserRouter>

@@ -416,6 +416,15 @@ const DataService = {
     `)
   },
 
+  getChampionshipMatchup(db, season) {
+    // Returns 2 rows: winner first (win=1), loser second (win=0)
+    return queryAll(db, `
+      SELECT * FROM weeklyResults
+      WHERE season = ? AND match_type = 'championship'
+      ORDER BY win DESC
+    `, [season])
+  },
+
   // ─── Trades ─────────────────────────────────────────────────────────────────
 
   getTrades(db) {
