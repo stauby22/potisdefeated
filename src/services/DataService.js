@@ -472,6 +472,165 @@ const DataService = {
     `, [season])
   },
 
+  // ─── Owner weekly history (used by OwnerProfile weekly section) ─────────────
+
+  getOwnerWeeks(db, owner) {
+    return queryAll(db, `
+      SELECT season, week, team, opponent, points_for, points_against, margin, win, match_type, date_of_match
+      FROM weeklyResults
+      WHERE LOWER(team) = LOWER(?)
+      ORDER BY season DESC, week ASC
+    `, [owner])
+  },
+
+  // ─── Matchup roster view ────────────────────────────────────────────────────
+  // Returns both teams' rosters for a single (season, week) matchup.
+  // Each side's players are ordered: starters first (by points desc), then bench.
+
+  getMatchupRosters(db, season, week, ownerA, ownerB) {
+    const fetchSide = owner => queryAll(db, `
+      SELECT name, position, team, start, points, player_id, sleeper_id
+      FROM rosters
+      WHERE season = ? AND week = ? AND LOWER(owner) = LOWER(?)
+      ORDER BY
+        CASE WHEN start = 'TRUE' THEN 0 ELSE 1 END,
+        CAST(points AS REAL) DESC
+    `, [season, week, owner])
+    return {
+      [ownerA]: fetchSide(ownerA),
+      [ownerB]: fetchSide(ownerB),
+    }
+  },
+
+  // ─── Player history (used by PlayerCard) ────────────────────────────────────
+  // Aggregated per-season presence, plus a chronological event timeline of
+  // drafts, keeper picks, transactional adds/drops, and trades.
+
+  getPlayerInfo(db, playerId) {
+    if (!playerId) return null
+    // Most recent appearance gives us the freshest name/position/team
+    return queryOne(db, `
+      SELECT name, position, team, player_id, sleeper_id
+      FROM rosters
+      WHERE player_id = ?
+      ORDER BY season DESC, week DESC
+      LIMIT 1
+    `, [String(playerId)])
+  },
+
+  getPlayerCareer(db, playerId) {
+    if (!playerId) return []
+    return queryAll(db, `
+      SELECT
+        season,
+        owner,
+        COUNT(*) AS roster_weeks,
+        SUM(CASE WHEN start = 'TRUE' THEN 1 ELSE 0 END) AS games_started,
+        ROUND(SUM(CASE WHEN start = 'TRUE' THEN CAST(points AS REAL) ELSE 0 END), 1) AS starter_points,
+        ROUND(SUM(CAST(points AS REAL)), 1) AS total_points,
+        ROUND(MAX(CAST(points AS REAL)), 1) AS best_week
+      FROM rosters
+      WHERE player_id = ?
+      GROUP BY season, owner
+      ORDER BY season ASC, owner ASC
+    `, [String(playerId)])
+  },
+
+  getPlayerTimeline(db, playerId) {
+    if (!playerId) return []
+    const pid = String(playerId)
+    const events = []
+
+    // Draft picks (incl. keepers)
+    const drafts = queryAll(db, `
+      SELECT season, year, round, draft_slot, owner, is_keeper
+      FROM draft
+      WHERE CAST(player_id AS TEXT) = ?
+      ORDER BY season ASC
+    `, [pid])
+    for (const d of drafts) {
+      const slot = d.draft_slot != null ? `R${d.round}.${String(d.draft_slot).padStart(2, '0')}` : `R${d.round}`
+      events.push({
+        sort_key: d.season * 10000,
+        season: d.season,
+        year: d.year,
+        kind: d.is_keeper ? 'kept' : 'drafted',
+        owner: d.owner,
+        detail: slot,
+      })
+    }
+
+    // Transactions: this player ADDED
+    const adds = queryAll(db, `
+      SELECT year, week, owner, added, transaction_date
+      FROM transactions
+      WHERE player_id = ?
+      ORDER BY year, week
+    `, [pid])
+    for (const a of adds) {
+      const season = a.year - 2013
+      const week = a.week || 0
+      events.push({
+        sort_key: season * 10000 + week * 10 + 1,
+        season, year: a.year, week,
+        kind: 'added',
+        owner: a.owner,
+        detail: `from ${a.added === 'Waiver' ? 'Waivers' : 'Free Agency'}`,
+        date: a.transaction_date,
+      })
+    }
+
+    // Drops (matched by name — drops have no player_id)
+    const info = this.getPlayerInfo(db, playerId)
+    if (info?.name) {
+      const drops = queryAll(db, `
+        SELECT year, week, owner, transaction_date
+        FROM transactions
+        WHERE dropped = ?
+        ORDER BY year, week
+      `, [info.name])
+      for (const d of drops) {
+        const season = d.year - 2013
+        const week = d.week || 0
+        events.push({
+          sort_key: season * 10000 + week * 10 + 0,
+          season, year: d.year, week,
+          kind: 'dropped',
+          owner: d.owner,
+          detail: 'to draft pool',
+          date: d.transaction_date,
+        })
+      }
+    }
+
+    // Trades — need roster_id → owner mapping per season
+    const rosterIdToOwner = {}
+    for (const r of queryAll(db, `SELECT season, owner, roster_id FROM seasonSummary WHERE roster_id IS NOT NULL`)) {
+      const rid = parseInt(r.roster_id, 10)
+      if (!Number.isNaN(rid)) rosterIdToOwner[`${r.season}:${rid}`] = r.owner
+    }
+    const trades = queryAll(db, `
+      SELECT year, week, from_roster_id, to_roster_id, trade_date
+      FROM trades
+      WHERE asset_type = 'player' AND asset_id = ?
+      ORDER BY trade_date
+    `, [pid])
+    for (const t of trades) {
+      const season = t.year - 2013
+      const week = t.week || 0
+      events.push({
+        sort_key: season * 10000 + week * 10 + 2,
+        season, year: t.year, week,
+        kind: 'traded',
+        from_owner: rosterIdToOwner[`${season}:${t.from_roster_id}`],
+        owner: rosterIdToOwner[`${season}:${t.to_roster_id}`],
+        date: t.trade_date,
+      })
+    }
+
+    return events.sort((a, b) => a.sort_key - b.sort_key)
+  },
+
   // ─── Quick home stats ────────────────────────────────────────────────────────
 
   getLeagueHighlights(db) {

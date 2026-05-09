@@ -10,6 +10,7 @@ const links = [
   { to: '/records',   label: 'Records'    },
   { to: '/trades',        label: 'Trades'      },
   { to: '/championships', label: 'Champions'   },
+  { to: '/keepers',       label: 'Keepers'     },
 ]
 
 export default function Nav() {

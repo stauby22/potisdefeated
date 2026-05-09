@@ -465,6 +465,385 @@ select:focus {
   color: var(--cream-muted);
 }
 
+/* ── Keeper page: clickable player + modal ────────────────────────────────── */
+.player-link {
+  background: none;
+  border: none;
+  padding: 0;
+  margin: 0;
+  font: inherit;
+  color: var(--cream);
+  cursor: pointer;
+  text-align: left;
+  text-decoration: none;
+  font-weight: 600;
+  border-bottom: 1px dotted var(--cream-faint);
+  transition: color var(--transition), border-color var(--transition);
+}
+.player-link:hover { color: var(--gold); border-bottom-color: var(--gold); }
+.player-link:focus { outline: 2px solid var(--gold-muted); outline-offset: 2px; }
+
+.kp-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(2px);
+  z-index: 1000;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 4vh 1rem;
+  overflow-y: auto;
+}
+.kp-modal {
+  background: var(--bg-panel);
+  border: 1.5px solid var(--border-strong);
+  border-radius: var(--radius);
+  max-width: 600px;
+  width: 100%;
+  padding: 1.25rem 1.4rem;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5);
+  max-height: 92vh;
+  overflow-y: auto;
+}
+.kp-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+  margin-bottom: 1rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid var(--border);
+}
+.kp-modal-title {
+  font-family: var(--font-heading);
+  font-size: 1.4rem;
+  color: var(--cream);
+  letter-spacing: 0.02em;
+}
+.kp-modal-sub {
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  color: var(--cream-muted);
+  margin-top: 0.25rem;
+}
+.kp-modal-close {
+  background: none;
+  border: none;
+  color: var(--cream-muted);
+  font-size: 1.6rem;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0 0.4rem;
+  transition: color var(--transition);
+}
+.kp-modal-close:hover { color: var(--crimson); }
+
+.kp-modal-stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+.kp-stat {
+  background: var(--bg-panel-alt);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 0.5rem 0.6rem;
+  text-align: center;
+}
+.kp-stat-label {
+  font-family: var(--font-mono);
+  font-size: 0.6rem;
+  letter-spacing: 0.08em;
+  color: var(--cream-muted);
+  text-transform: uppercase;
+  margin-bottom: 0.25rem;
+}
+.kp-stat-value {
+  font-family: var(--font-mono);
+  font-size: 0.95rem;
+  color: var(--cream);
+  font-weight: bold;
+}
+
+.kp-modal-notes {
+  background: rgba(196, 80, 80, 0.08);
+  border: 1px solid rgba(196, 80, 80, 0.3);
+  border-radius: var(--radius);
+  padding: 0.5rem 0.7rem;
+  font-family: var(--font-mono);
+  font-size: 0.74rem;
+  color: var(--cream-muted);
+  margin-bottom: 1rem;
+}
+.kp-modal-notes strong { color: var(--crimson); }
+
+.kp-modal-section {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.1em;
+  color: var(--cream-muted);
+  text-transform: uppercase;
+  margin-bottom: 0.5rem;
+  padding-bottom: 0.25rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.kp-timeline {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+.kp-event {
+  display: grid;
+  grid-template-columns: 90px 1fr auto;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.5rem 0.6rem;
+  background: var(--bg-panel-alt);
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+}
+.kp-event-badge {
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  letter-spacing: 0.08em;
+  font-weight: bold;
+  text-align: center;
+  padding: 0.2rem 0.4rem;
+  border: 1.5px solid;
+  border-radius: var(--radius);
+  text-transform: uppercase;
+}
+.kp-event-body {
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+  color: var(--cream);
+}
+.kp-event-body strong { color: var(--gold); font-weight: 600; }
+.kp-event-date {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  color: var(--cream-muted);
+  white-space: nowrap;
+}
+
+@media (max-width: 540px) {
+  .kp-modal-stats { grid-template-columns: repeat(2, 1fr); }
+  .kp-event { grid-template-columns: 78px 1fr; }
+  .kp-event-date { grid-column: 2; font-size: 0.65rem; }
+}
+
+/* ── Per-season league career table inside PlayerCard ─────────────────────── */
+.kp-career-table {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  margin-bottom: 1rem;
+}
+.kp-career-row {
+  display: grid;
+  grid-template-columns: 1.3fr 1fr 0.5fr 0.7fr 0.6fr;
+  gap: 0.5rem;
+  padding: 0.35rem 0.6rem;
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  background: var(--bg-panel-alt);
+  border-radius: var(--radius);
+}
+.kp-career-row.kp-career-head {
+  font-size: 0.62rem;
+  letter-spacing: 0.08em;
+  color: var(--cream-muted);
+  text-transform: uppercase;
+  background: transparent;
+  padding: 0.2rem 0.6rem;
+}
+
+/* ── Wider matchup modal so two rosters fit comfortably ───────────────────── */
+.kp-matchup-modal { max-width: 880px; }
+
+.kp-matchup-score {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.5rem 0.75rem 1rem;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 1rem;
+}
+.kp-matchup-vs {
+  font-family: var(--font-mono);
+  color: var(--cream-muted);
+  font-size: 0.78rem;
+  letter-spacing: 0.15em;
+  padding: 0 1rem;
+}
+
+.kp-matchup-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+.kp-roster-side {
+  background: var(--bg-panel-alt);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 0.6rem;
+}
+.kp-roster-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding-bottom: 0.4rem;
+  margin-bottom: 0.4rem;
+  border-bottom: 1px solid var(--border);
+}
+.kp-roster-owner {
+  font-family: var(--font-heading);
+  font-size: 0.95rem;
+  color: var(--cream);
+}
+.kp-roster-total {
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+  font-weight: bold;
+  color: var(--gold);
+}
+.kp-roster-section-label {
+  font-family: var(--font-mono);
+  font-size: 0.6rem;
+  letter-spacing: 0.1em;
+  color: var(--cream-muted);
+  text-transform: uppercase;
+  margin: 0.5rem 0 0.25rem;
+  padding-bottom: 0.15rem;
+  border-bottom: 1px dashed var(--border);
+}
+.kp-roster-empty {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  color: var(--cream-muted);
+  font-style: italic;
+  padding: 0.4rem 0;
+}
+.kp-roster-row {
+  display: grid;
+  grid-template-columns: 32px 1fr auto auto;
+  gap: 0.5rem;
+  align-items: center;
+  padding: 0.25rem 0.35rem;
+  font-family: var(--font-mono);
+  font-size: 0.74rem;
+  border-radius: 3px;
+  opacity: 0.65;
+}
+.kp-roster-row--starter { opacity: 1; }
+.kp-roster-row:hover { background: var(--cream-faint); }
+.kp-roster-pos {
+  font-weight: bold;
+  font-size: 0.66rem;
+  letter-spacing: 0.04em;
+}
+.kp-roster-name { color: var(--cream); }
+.kp-roster-name:disabled {
+  color: var(--cream-muted);
+  cursor: default;
+  border-bottom-color: transparent;
+}
+.kp-roster-team {
+  color: var(--cream-muted);
+  font-size: 0.7rem;
+  min-width: 28px;
+  text-align: right;
+}
+.kp-roster-points {
+  color: var(--cream);
+  font-weight: bold;
+  min-width: 38px;
+  text-align: right;
+}
+
+/* ── Owner profile: weekly history grid ───────────────────────────────────── */
+.season-tab {
+  background: transparent;
+  color: var(--cream-muted);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 0.3rem 0.6rem;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.05em;
+  cursor: pointer;
+  transition: color var(--transition), border-color var(--transition);
+}
+.season-tab:hover { color: var(--cream); border-color: var(--cream-muted); }
+.season-tab--active {
+  color: var(--gold);
+  border-color: var(--gold-muted);
+  background: rgba(212, 168, 67, 0.06);
+}
+
+.kp-week-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 0.5rem;
+}
+.kp-week-card {
+  background: var(--bg-panel-alt);
+  border: 1px solid var(--border);
+  border-left: 3px solid transparent;
+  border-radius: var(--radius);
+  padding: 0.5rem 0.6rem;
+  cursor: pointer;
+  text-align: left;
+  transition: border-color var(--transition), background var(--transition);
+  font-family: var(--font-mono);
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+.kp-week-card:hover { background: var(--cream-faint); }
+.kp-week-card--win { border-left-color: var(--win-fg); }
+.kp-week-card--loss { border-left-color: var(--loss-fg); }
+.kp-week-label {
+  font-size: 0.66rem;
+  color: var(--cream-muted);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.kp-week-score {
+  font-size: 0.92rem;
+  font-weight: bold;
+  color: var(--cream);
+}
+.kp-week-dash { color: var(--cream-muted); margin: 0 0.2rem; }
+.kp-week-opp {
+  font-size: 0.7rem;
+  color: var(--cream-muted);
+}
+
+/* Clickable score in WeeklyMatchups */
+.matchup-card__score--clickable {
+  background: none;
+  border: 1px solid transparent;
+  color: inherit;
+  cursor: pointer;
+  font: inherit;
+  padding: 0.3rem 0.5rem;
+  border-radius: var(--radius);
+  transition: border-color var(--transition), background var(--transition);
+}
+.matchup-card__score--clickable:hover:not(:disabled) {
+  border-color: var(--cream-faint);
+  background: var(--cream-faint);
+}
+.matchup-card__score--clickable:disabled { cursor: default; }
+
+@media (max-width: 720px) {
+  .kp-matchup-grid { grid-template-columns: 1fr; }
+}
+
 /* ── Responsive ───────────────────────────────────────────────────────────── */
 @media (max-width: 640px) {
   .page { padding: 1rem 0.75rem; }

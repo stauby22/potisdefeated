@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { useDatabase } from '../context/DatabaseContext'
 import DataService, { SEASON_YEAR, ALL_OWNERS } from '../services/DataService'
@@ -6,6 +6,7 @@ import Panel from '../components/ui/Panel'
 import { Trophies, RankBadge } from '../components/ui/Trophies'
 import OwnerCoin from '../components/ui/OwnerCoin'
 import { RecordBadge } from '../components/ui/WinLossBadge'
+import MatchupView from '../components/ui/MatchupView'
 
 function computeStreaks(results) {
   let maxWin = 0, maxLoss = 0, curWin = 0, curLoss = 0
@@ -35,6 +36,24 @@ export default function OwnerProfile() {
   const bigLosses = useMemo(() => db ? DataService.getOwnerBiggestLosses(db, ownerName, 5) : [], [db, ownerName])
   const allResults = useMemo(() => db ? DataService.getOwnerResults(db, ownerName) : [], [db, ownerName])
   const streaks = useMemo(() => computeStreaks(allResults), [allResults])
+  const weeks = useMemo(() => db ? DataService.getOwnerWeeks(db, ownerName) : [], [db, ownerName])
+
+  // Group weeks by season for the collapsible weekly history view
+  const weeksBySeason = useMemo(() => {
+    const grouped = {}
+    for (const w of weeks) {
+      if (!grouped[w.season]) grouped[w.season] = []
+      grouped[w.season].push(w)
+    }
+    return grouped
+  }, [weeks])
+
+  const sortedSeasons = useMemo(() => Object.keys(weeksBySeason).map(Number).sort((a, b) => b - a), [weeksBySeason])
+
+  // Most recent season expanded by default
+  const [expandedSeason, setExpandedSeason] = useState(null)
+  const activeSeason = expandedSeason ?? sortedSeasons[0]
+  const [matchupOpen, setMatchupOpen] = useState(null) // {season, week, opponent, points_for, points_against, match_type}
 
   if (!owner) {
     return (
@@ -177,6 +196,59 @@ export default function OwnerProfile() {
         </Panel>
       </div>
 
+      {/* Weekly history — pick a season, see every matchup, click to view rosters */}
+      {sortedSeasons.length > 0 && (
+        <Panel title="Weekly History" className="mt-3">
+          <div className="flex gap-1 wrap mb-2" style={{ borderBottom: '1px solid var(--border)', paddingBottom: '0.5rem' }}>
+            {sortedSeasons.map(s => (
+              <button
+                key={s}
+                type="button"
+                onClick={() => setExpandedSeason(s)}
+                className={`season-tab${activeSeason === s ? ' season-tab--active' : ''}`}
+              >
+                S{s} · {SEASON_YEAR(s)}
+              </button>
+            ))}
+          </div>
+
+          {activeSeason && (
+            <div className="kp-week-grid">
+              {(weeksBySeason[activeSeason] || []).map((w, i) => (
+                <button
+                  key={i}
+                  type="button"
+                  className={`kp-week-card ${w.win ? 'kp-week-card--win' : 'kp-week-card--loss'}`}
+                  onClick={() => setMatchupOpen({
+                    season: w.season, week: w.week,
+                    ownerA: ownerName, ownerB: w.opponent,
+                    scoreA: w.points_for, scoreB: w.points_against,
+                    matchType: w.match_type,
+                  })}
+                >
+                  <div className="kp-week-label">
+                    Wk {w.week}
+                    {w.match_type && w.match_type !== 'regular' && (
+                      <span style={{ color: 'var(--gold)', marginLeft: '0.4rem', fontSize: '0.6rem' }}>
+                        {w.match_type.toUpperCase()}
+                      </span>
+                    )}
+                  </div>
+                  <div className="kp-week-score">
+                    <span style={{ color: w.win ? 'var(--win-fg)' : 'var(--loss-fg)' }}>
+                      {Number(w.points_for).toFixed(1)}
+                    </span>
+                    <span className="kp-week-dash">–</span>
+                    <span>{Number(w.points_against).toFixed(1)}</span>
+                  </div>
+                  <div className="kp-week-opp">vs {w.opponent}</div>
+                </button>
+              ))}
+            </div>
+          )}
+        </Panel>
+      )}
+
       {/* Best and worst games */}
       <div className="grid-2 mt-3">
         <Panel title="Biggest Wins">
@@ -186,6 +258,19 @@ export default function OwnerProfile() {
           <GameList games={bigLosses} type="loss" owner={ownerName} />
         </Panel>
       </div>
+
+      {matchupOpen && (
+        <MatchupView
+          season={matchupOpen.season}
+          week={matchupOpen.week}
+          ownerA={matchupOpen.ownerA}
+          ownerB={matchupOpen.ownerB}
+          scoreA={matchupOpen.scoreA}
+          scoreB={matchupOpen.scoreB}
+          matchType={matchupOpen.matchType}
+          onClose={() => setMatchupOpen(null)}
+        />
+      )}
     </div>
   )
 }

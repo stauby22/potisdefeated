@@ -11,6 +11,7 @@ import DraftHistory from './pages/DraftHistory'
 import Records from './pages/Records'
 import TradeHistory from './pages/TradeHistory'
 import Championships from './pages/Championships'
+import KeeperValues from './pages/KeeperValues'
 
 export default function App() {
   return (
@@ -29,6 +30,7 @@ export default function App() {
             <Route path="records" element={<Records />} />
             <Route path="trades" element={<TradeHistory />} />
             <Route path="championships" element={<Championships />} />
+            <Route path="keepers" element={<KeeperValues />} />
           </Route>
         </Routes>
       </BrowserRouter>

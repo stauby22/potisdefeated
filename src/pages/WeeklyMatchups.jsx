@@ -4,6 +4,7 @@ import { useDatabase } from '../context/DatabaseContext'
 import DataService, { CURRENT_SEASON, SEASON_YEAR } from '../services/DataService'
 import Panel from '../components/ui/Panel'
 import WinLossBadge from '../components/ui/WinLossBadge'
+import MatchupView from '../components/ui/MatchupView'
 
 const MATCH_TYPE_LABELS = {
   regular: 'Regular Season',
@@ -22,6 +23,7 @@ export default function WeeklyMatchups() {
 
   const [season, setSeason] = useState(CURRENT_SEASON)
   const [week, setWeek] = useState(null)
+  const [matchupOpen, setMatchupOpen] = useState(null)
 
   const seasonList = useMemo(() => db ? DataService.getSeasonList(db) : [], [db])
   const weekList = useMemo(() => {
@@ -92,7 +94,17 @@ export default function WeeklyMatchups() {
               style={{ marginBottom: '1rem' }}
             >
               {typePairs.map((pair, i) => (
-                <MatchupRow key={i} home={pair[0]} away={pair[1]} />
+                <MatchupRow
+                  key={i}
+                  home={pair[0]}
+                  away={pair[1]}
+                  onOpen={(h, a) => setMatchupOpen({
+                    season: h.season, week: h.week,
+                    ownerA: h.team, ownerB: a?.team,
+                    scoreA: h.points_for, scoreB: a?.points_for,
+                    matchType: h.match_type,
+                  })}
+                />
               ))}
             </Panel>
           ))}
@@ -103,6 +115,19 @@ export default function WeeklyMatchups() {
             </Link>
           </div>
         </>
+      )}
+
+      {matchupOpen && matchupOpen.ownerB && (
+        <MatchupView
+          season={matchupOpen.season}
+          week={matchupOpen.week}
+          ownerA={matchupOpen.ownerA}
+          ownerB={matchupOpen.ownerB}
+          scoreA={matchupOpen.scoreA}
+          scoreB={matchupOpen.scoreB}
+          matchType={matchupOpen.matchType}
+          onClose={() => setMatchupOpen(null)}
+        />
       )}
     </div>
   )
@@ -123,11 +148,12 @@ function pairMatchups(rows) {
   return pairs
 }
 
-function MatchupRow({ home, away }) {
+function MatchupRow({ home, away, onOpen }) {
   if (!home) return null
   // win is stored as integer 0/1 in SQLite — use == 1 to avoid JSX rendering "0"
   const homeWon = home.win == 1
   const awayWon = away?.win == 1
+  const canOpen = !!away
   return (
     <div className="matchup-card">
       <div className={`matchup-card__team ${homeWon ? 'matchup-card__winner' : 'matchup-card__loser'}`}>
@@ -137,7 +163,13 @@ function MatchupRow({ home, away }) {
         {homeWon && <span style={{ marginLeft: '0.35rem', fontSize: '0.85em' }}>✓</span>}
       </div>
 
-      <div className="matchup-card__score">
+      <button
+        type="button"
+        className="matchup-card__score matchup-card__score--clickable"
+        disabled={!canOpen}
+        onClick={() => canOpen && onOpen(home, away)}
+        title={canOpen ? 'View rosters' : ''}
+      >
         <span style={{ color: homeWon ? 'var(--win-fg)' : 'var(--cream-muted)' }}>
           {Number(home.points_for).toFixed(2)}
         </span>
@@ -145,7 +177,7 @@ function MatchupRow({ home, away }) {
         <span style={{ color: awayWon ? 'var(--win-fg)' : 'var(--cream-muted)' }}>
           {away ? Number(away.points_for).toFixed(2) : '—'}
         </span>
-      </div>
+      </button>
 
       <div className={`matchup-card__team matchup-card__right ${awayWon ? 'matchup-card__winner' : 'matchup-card__loser'}`}>
         {awayWon && <span style={{ marginRight: '0.35rem', fontSize: '0.85em' }}>✓</span>}
